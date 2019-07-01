@@ -8,6 +8,7 @@
 * Ros: __Kinetic__
 * Python: __Python2__
 * Network: MSU EGR Network
+* Camera: Realsense D435i
 
 ### Prerequisites: 
 
@@ -38,7 +39,7 @@ catkin_make
 # You should setup it when you open any new session or you can add it into .bashrc
 source ~/catkin_ws/devel/setup.bash
 
-# Run
+# Connect the Realsense camera and Run
 rosrun rs_camera main.py
 ```
 
