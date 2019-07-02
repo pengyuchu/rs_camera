@@ -34,21 +34,21 @@ next_iteration = True
 
 def init_publishers():
 	
-  	global image_pub
-  	global depth_pub
-  	global pos_pub
-  	image_pub = rospy.Publisher("color_image",Image, queue_size = 1)
-  	depth_pub = rospy.Publisher("depth_image",Image, queue_size = 1)
-  	pos_pub = rospy.Publisher("positions",PoseArray, queue_size = 1)
-  	# tf built in publisher for ROS
-  	tf_pub = tf.TransformBroadcaster()
+	global image_pub
+	global depth_pub
+	global pos_pub
+	image_pub = rospy.Publisher("color_image",Image, queue_size = 1)
+	depth_pub = rospy.Publisher("depth_image",Image, queue_size = 1)
+	pos_pub = rospy.Publisher("positions",PoseArray, queue_size = 1)
+	# tf built in publisher for ROS
+	tf_pub = tf.TransformBroadcaster()
 
 
 def init_subcribers():
 	
-  	global detection_sub
-  	# image_sub = rospy.Subscriber("color_image",Image,view_callback)
-  	detection_sub = rospy.Subscriber("Detection",Int16MultiArray ,bbox_callback)
+	global detection_sub
+	# image_sub = rospy.Subscriber("color_image",Image,view_callback)
+	detection_sub = rospy.Subscriber("Detection",Int16MultiArray ,bbox_callback)
 
 	
 def meter2inch(data):
@@ -58,23 +58,23 @@ def meter2inch(data):
 
 def get_images_from_rs_camera():
 	
-  	global color_image
-  	global depth_image
-  	global depth_scale
-  	global depth_intrinsics
-  	global depth_colormap
+	global color_image
+	global depth_image
+	global depth_scale
+	global depth_intrinsics
+	global depth_colormap
 
-  	# Wait for a coherent pair of frames: depth and color
-  	frames = pipeline.wait_for_frames()
-  	depth_frame = frames.get_depth_frame()
-  	color_frame = frames.get_color_frame()
-  	depth_scale = profile.get_device().first_depth_sensor().get_depth_scale()
+	# Wait for a coherent pair of frames: depth and color
+	frames = pipeline.wait_for_frames()
+	depth_frame = frames.get_depth_frame()
+	color_frame = frames.get_color_frame()
+	depth_scale = profile.get_device().first_depth_sensor().get_depth_scale()
 
-  	depth_intrinsics = depth_frame.profile.as_video_stream_profile().intrinsics
+	depth_intrinsics = depth_frame.profile.as_video_stream_profile().intrinsics
 
-  	if not depth_frame or not color_frame:
+	if not depth_frame or not color_frame:
 		
-      	return
+		return
 
   	# Convert images to numpy arrays
   	depth_image = np.asanyarray(depth_frame.get_data())
@@ -119,24 +119,25 @@ def view_callback(data):
 		
   	except CvBridgeError as e:
 		
-		print(e)
+	print(e)
 
-  	cv2.imshow("Image window", cv_image)
-  	key = cv2.waitKey(3)
+	cv2.imshow("Image window", cv_image)
+	key = cv2.waitKey(3)
 	
-  	if key == 'q':
+	if key == 'q':
 		
 		cv2.destroyAllWindows()
 
 
 def cal_coodinates(bboxes):
 	
-  	points = PoseArray()
-  	pointsM = PoseArray()
+	points = PoseArray()
+	pointsM = PoseArray()
 
-  	i = 0
+	i = 0
 	
 	while i < bboxes.shape[0]:
+		
 		y1 = bboxes[i][0]
 		x1 = bboxes[i][1]
 		y2 = bboxes[i][2]
@@ -202,7 +203,7 @@ def cal_coodinates(bboxes):
 	
 	if key & 0xFF == ord('q') or key == 27:
 		
-			cv2.destroyAllWindows()
+		cv2.destroyAllWindows()
 
 	pos_pub.publish(points)
 
