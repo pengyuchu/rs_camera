@@ -16,6 +16,7 @@ from cv_bridge import CvBridge, CvBridgeError
 import pyrealsense2 as rs
 import numpy as np
 import cv2
+import tf
 
 
 # Configure depth and color streams
@@ -37,6 +38,8 @@ def init_publishers():
   image_pub = rospy.Publisher("color_image",Image, queue_size = 1)
   depth_pub = rospy.Publisher("depth_image",Image, queue_size = 1)
   pos_pub = rospy.Publisher("positions",PoseArray, queue_size = 1)
+  # tf built in publisher for ROS
+  tf_pub = tf.TransformBroadcaster()
 
 
 def init_subcribers():
