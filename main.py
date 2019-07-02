@@ -137,7 +137,7 @@ def cal_coodinates(bboxes):
     point_location = [meter2inch(p) for p in point_location]
     print('The location is:',  point_location)
 
-    point = Pose()fjdsklfjsdklfj
+    point = Pose()
     point.position.x = point_location[0]
     point.position.y = point_location[1]
     point.position.z = point_location[2]
