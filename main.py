@@ -110,6 +110,7 @@ def view_callback(data):
 
 def cal_coodinates(bboxes):
   points = PoseArray()
+  pointsM = PoseArray()
 
   i = 0
   while i < bboxes.shape[0]:
@@ -134,14 +135,26 @@ def cal_coodinates(bboxes):
 
     # Projection
     point_location = rs.rs2_deproject_pixel_to_point(depth_intrinsics, [(x2+x1)/2, (y2+y1)/2], distance)
+	point_locationM = point_location
     point_location = [meter2inch(p) for p in point_location]
     print('The location is:',  point_location)
 
     point = Pose()
+	pointM = pose()
     point.position.x = point_location[0]
     point.position.y = point_location[1]
     point.position.z = point_location[2]
+	
+	# Meter Position
+	pointM.position.x = point_locationM[0]
+	pointM.position.y = point_locationM[1]
+	pointM.position.z = point_locationM[2]
+	
     points.poses.append(point)
+	
+	# Meter points
+	pointsM.poses.append(pointM)
+	
     # print('The Distance is ', distance)
 
     # Display (x, y, z) on the bounding boxes
@@ -167,7 +180,8 @@ def cal_coodinates(bboxes):
     cv2.destroyAllWindows()
 
   pos_pub.publish(points)
-      
+ 
+  #TF broadcast of points
 
 
 def bbox_callback(data):
