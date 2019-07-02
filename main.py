@@ -119,7 +119,7 @@ def view_callback(data):
 		
   	except CvBridgeError as e:
 		
-	print(e)
+		print(e)
 
 	cv2.imshow("Image window", cv_image)
 	key = cv2.waitKey(3)
