@@ -183,6 +183,26 @@ def cal_coodinates(bboxes):
  
   #TF broadcast of points
 
+#  for t_point in pointsM:
+#   
+#	tf_pub.sendTransform((t_point.position.x, t_point.position.y, t_point.position.z),
+#						 (0.0, 0.0, 0.0, 1.0),
+#						 rospy.Time.now(),
+#						 "apple",
+#						 "world")
+
+  j = 0
+	
+  while j < len(pointsM):
+	
+	apple_ID = "apple_" + str(j)
+	
+	tf_pub.sendTransform((pointsM[j].position.x, pointsM[j].position.y, pointsM[j].position.z),
+						 (0.0, 0.0, 0.0, 1.0),
+						 rospy.Time.now(),
+						 apple_ID,
+						 "camera_color_optical_frame")
+
 
 def bbox_callback(data):
 	global next_iteration
