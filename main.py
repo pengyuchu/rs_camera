@@ -73,6 +73,7 @@ def get_images_from_rs_camera():
   	depth_intrinsics = depth_frame.profile.as_video_stream_profile().intrinsics
 
   	if not depth_frame or not color_frame:
+		
       	return
 
   	# Convert images to numpy arrays
@@ -113,19 +114,19 @@ def view_callback(data):
 	
   	try:
 		
-    	cv_image = bridge.imgmsg_to_cv2(data, "bgr8")
-    	print('Receive Msg')
+		cv_image = bridge.imgmsg_to_cv2(data, "bgr8")
+		print('Receive Msg')
 		
   	except CvBridgeError as e:
 		
-    	print(e)
+		print(e)
 
   	cv2.imshow("Image window", cv_image)
   	key = cv2.waitKey(3)
 	
   	if key == 'q':
 		
-    	cv2.destroyAllWindows()
+		cv2.destroyAllWindows()
 
 
 def cal_coodinates(bboxes):
