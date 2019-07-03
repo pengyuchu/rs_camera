@@ -164,7 +164,7 @@ def cal_coodinates(bboxes):
 		print('The location is:',  point_location)
 
 		point = Pose()
-		pointM = pose()
+		pointM = Pose()
 		point.position.x = point_location[0]
 		point.position.y = point_location[1]
 		point.position.z = point_location[2]
