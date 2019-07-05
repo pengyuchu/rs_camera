@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env python
+#!/usr/bin/env python
 from __future__ import print_function
 
 import roslib
@@ -57,7 +57,7 @@ def meter2inch(data):
 
 
 def get_images_from_rs_camera():
-	
+
 	global color_image
 	global depth_image
 	global depth_scale
@@ -73,7 +73,7 @@ def get_images_from_rs_camera():
 	depth_intrinsics = depth_frame.profile.as_video_stream_profile().intrinsics
 
 	if not depth_frame or not color_frame:
-		
+
 		return
 
 	# Convert images to numpy arrays
@@ -89,13 +89,13 @@ def stream_images():
 	# capture images 
 	global next_iteration
 	r = rospy.Rate(4) # 10hz
-	
+
 	try:
-		
+
 		while True:
-			
+
 			if next_iteration:
-				
+
 				get_images_from_rs_camera()
 				image_pub.publish(bridge.cv2_to_imgmsg(color_image, "bgr8"))
 				depth_pub.publish(bridge.cv2_to_imgmsg(depth_image, "mono16"))
@@ -103,36 +103,38 @@ def stream_images():
 				print('Send Msg')
 
 			r.sleep()
-			
+
 	finally:
-		
+
 		# Stop streaming
 		pipeline.stop()
 
 
 def view_callback(data):
-	
-  	try:
-		
+
+	try:
+
 		cv_image = bridge.imgmsg_to_cv2(data, "bgr8")
 		print('Receive Msg')
-		
-  	except CvBridgeError as e:
-		
+
+	except CvBridgeError as e:
+
 		print(e)
 
 	cv2.imshow("Image window", cv_image)
 	key = cv2.waitKey(3)
-	
+
 	if key == 'q':
-		
+
 		cv2.destroyAllWindows()
 
 
 def cal_coodinates(bboxes):
-	
+
+	# Inch based points array
 	points = PoseArray()
-	pointsM = PoseArray()
+	# Meter based points array
+	pointsM = PoseAray()
 
 	i = 0
 	
@@ -165,20 +167,18 @@ def cal_coodinates(bboxes):
 
 		point = Pose()
 		pointM = Pose()
+		
 		point.position.x = point_location[0]
 		point.position.y = point_location[1]
 		point.position.z = point_location[2]
-
-		# Meter Position
+		
 		pointM.position.x = point_locationM[0]
 		pointM.position.y = point_locationM[1]
 		pointM.position.z = point_locationM[2]
-
+		
 		points.poses.append(point)
-
-		# Meter points
 		pointsM.poses.append(pointM)
-
+		
 		# print('The Distance is ', distance)
 
 		# Display (x, y, z) on the bounding boxes
@@ -190,35 +190,26 @@ def cal_coodinates(bboxes):
 		text = '%.1f, %.1f, %.1f' % (point_location[0],point_location[1],point_location[2])
 
 		cv2.putText(color_image,text,
-			bottomLeftCornerOfText,
-			font,
-			fontScale,
-			fontColor,
-			lineType)
+					bottomLeftCornerOfText,
+					font,
+					fontScale,
+					fontColor,
+					lineType)
 
 	final = cv2.hconcat([color_image, depth_colormap])
 	cv2.namedWindow('RealSense', cv2.WINDOW_AUTOSIZE)
 	cv2.imshow('RealSense', color_image)
 	key = cv2.waitKey(1)
-	
+
 	if key & 0xFF == ord('q') or key == 27:
-		
+
 		cv2.destroyAllWindows()
 
-	pos_pub.publish(points)
-
-  #TF broadcast of points
-
-#  for t_point in pointsM:
-#   
-#	tf_pub.sendTransform((t_point.position.x, t_point.position.y, t_point.position.z),
-#						 (0.0, 0.0, 0.0, 1.0),
-#						 rospy.Time.now(),
-#						 "apple",
-#						 "world")
-
+	pos_pub.publish(points)  
+	
 	j = 0
 	
+	# Publish each point in array to tf (transformation) for MoveIt visualization
 	while j < len(pointsM):
 	
 		apple_ID = "apple_" + str(j)
@@ -228,10 +219,12 @@ def cal_coodinates(bboxes):
 							 rospy.Time.now(),
 							 apple_ID,
 							 "camera_color_optical_frame")
+		
+		j = j + 1
 
 
 def bbox_callback(data):
-	
+
 	global next_iteration
 
 	bboxes = np.array(data.data).reshape(len(data.data)/4, 4)
@@ -240,7 +233,7 @@ def bbox_callback(data):
 
 
 if __name__ == '__main__':
-	
+
 	rospy.init_node('rs_camera', anonymous=True)
 	init_publishers()
 	init_subcribers()
