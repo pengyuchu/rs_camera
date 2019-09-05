@@ -104,6 +104,8 @@ def view_callback(data):
   if key == 'q':
     cv2.destroyAllWindows()
 
+def sortZ(point):
+	return point.position.z
 
 def cal_coodinates(bboxes):
   points = PoseArray()
@@ -162,7 +164,8 @@ def cal_coodinates(bboxes):
   key = cv2.waitKey(1)
   if key & 0xFF == ord('q') or key == 27:
     cv2.destroyAllWindows()
-
+	
+  points.poses.sort(key=sortZ)
   pos_pub.publish(points)
       
 
