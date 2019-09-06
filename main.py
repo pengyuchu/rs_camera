@@ -165,7 +165,7 @@ def cal_coodinates(bboxes):
   if key & 0xFF == ord('q') or key == 27:
     cv2.destroyAllWindows()
 	
-  points.poses.sort(key=sortZ)
+  # points.poses.sort(key=sortZ)
   pos_pub.publish(points)
       
 
