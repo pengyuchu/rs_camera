@@ -17,6 +17,13 @@ import pyrealsense2 as rs
 import numpy as np
 import cv2
 
+from datetime import datetime
+from blob_detection import *
+
+# now = datetime.now()
+# ts = datetime.timestamp()
+# dt = datetime.fromtimestamp()
+
 
 # Configure depth and color streams
 pipeline = rs.pipeline()
@@ -26,6 +33,9 @@ MAX_HEIGHT = 480
 config.enable_stream(rs.stream.depth, MAX_WIDTH, MAX_HEIGHT, rs.format.z16, 30)
 config.enable_stream(rs.stream.color, MAX_WIDTH, MAX_HEIGHT, rs.format.bgr8, 30)
 
+align_to = rs.stream.color
+align = rs.align(align_to)
+
 profile = pipeline.start(config)
 bridge = CvBridge()
 next_iteration = True
@@ -34,9 +44,11 @@ def init_publishers():
   global image_pub
   global depth_pub
   global pos_pub
+  global converted_pos_pub
   image_pub = rospy.Publisher("color_image",Image, queue_size = 1)
   depth_pub = rospy.Publisher("depth_image",Image, queue_size = 1)
-  pos_pub = rospy.Publisher("positions",PoseArray, queue_size = 1)
+  pos_pub = rospy.Publisher("camera_based_positions",PoseArray, queue_size = 1)
+  converted_pos_pub = rospy.Publisher("tube_based_positions", PoseArray, queue_size = 1)
 
 
 def init_subcribers():
@@ -56,8 +68,9 @@ def get_images_from_rs_camera():
 
   # Wait for a coherent pair of frames: depth and color
   frames = pipeline.wait_for_frames()
-  depth_frame = frames.get_depth_frame()
-  color_frame = frames.get_color_frame()
+  aligned_frames = align.process(frames)
+  depth_frame = aligned_frames.get_depth_frame()
+  color_frame = aligned_frames.get_color_frame()
   depth_scale = profile.get_device().first_depth_sensor().get_depth_scale()
 
   depth_intrinsics = depth_frame.profile.as_video_stream_profile().intrinsics
@@ -74,20 +87,30 @@ def get_images_from_rs_camera():
 
 
 def stream_images():
-	# capture images 
-	global next_iteration
-	r = rospy.Rate(4) # 10hz
-	try:
-		while True:
-			if next_iteration:
-				get_images_from_rs_camera()
-				image_pub.publish(bridge.cv2_to_imgmsg(color_image, "bgr8"))
-				depth_pub.publish(bridge.cv2_to_imgmsg(depth_image, "mono16"))
+  # capture images 
+  global next_iteration
+  # r = rospy.Rate(4) # 10hz
+  try:
+    while True:
+      if next_iteration:
+        get_images_from_rs_camera()
+        # image_pub.publish(bridge.cv2_to_imgmsg(color_image, "bgr8"))
+        # depth_pub.publish(bridge.cv2_to_imgmsg(depth_image, "mono16"))
 
-				print('Send Msg')
+      # local detection algorithm
+      start = time.time()
 
-			r.sleep()
-	finally:
+      bboxes = blob_detection_with_dog(color_image)
+      end = time.time() - start
+      bboxes = np.array(bboxes).reshape(len(bboxes)/4, 4)
+      cal_coodinates(bboxes)
+
+
+      print('Run time: ', end)
+
+      # r.sleep()
+
+  finally:
 		# Stop streaming
 		pipeline.stop()
 
@@ -117,6 +140,10 @@ def cal_coodinates(bboxes):
     y2 = bboxes[i][2]
     x2 = bboxes[i][3]
     i += 1
+
+    if (y2-y1) / (x2-x1) > 2 or (x2-x1)/(y2-y1) > 2 or x2-x1 > 200 or y2-y1 > 200 :
+      continue
+
     cv2.rectangle(color_image,(x1,y1),(x2,y2),(0,255,255),1)
     width, height = x2-x1, y2-y1
     distance_loss_x = width/4
@@ -134,7 +161,9 @@ def cal_coodinates(bboxes):
     # Projection
     point_location = rs.rs2_deproject_pixel_to_point(depth_intrinsics, [(x2+x1)/2, (y2+y1)/2], distance)
     point_location = [meter2inch(p) for p in point_location]
-    print('The location is:',  point_location)
+    now = datetime.now()
+    print(now, end=' ')
+    print('loc:',  point_location)
 
     point = Pose()
     point.position.x = point_location[0]
@@ -162,12 +191,29 @@ def cal_coodinates(bboxes):
   cv2.namedWindow('RealSense', cv2.WINDOW_AUTOSIZE)
   cv2.imshow('RealSense', color_image)
   key = cv2.waitKey(1)
-  if key & 0xFF == ord('q') or key == 27:
-    cv2.destroyAllWindows()
+  # if key & 0xFF == ord('q') or key == 27:
+  #   cv2.destroyAllWindows()
 	
-  # points.poses.sort(key=sortZ)
+  points.poses.sort(key=sortZ)
   pos_pub.publish(points)
-      
+  convert_coordinates(points)
+
+
+def convert_coordinates(points):
+
+  for p in points.poses:
+    tmp_x = p.position.x
+    tmp_y = p.position.y
+    tmp_z = p.position.z
+    p.position.x = tmp_z - 32.6
+    p.position.y =  (tmp_x - 2.1)
+    p.position.z = -1 * (tmp_y - 7.1)
+
+    print('Tube-based loc:',   p.position.x,  p.position.y, p.position.z)
+
+
+  converted_pos_pub.publish(points)
+
 
 
 def bbox_callback(data):
