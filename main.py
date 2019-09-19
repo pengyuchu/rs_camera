@@ -48,7 +48,7 @@ def init_publishers():
   image_pub = rospy.Publisher("color_image",Image, queue_size = 1)
   depth_pub = rospy.Publisher("depth_image",Image, queue_size = 1)
   pos_pub = rospy.Publisher("camera_based_positions",PoseArray, queue_size = 1)
-  converted_pos_pub = rospy.Publisher("tube_based_positions", PoseArray, queue_size = 1)
+  converted_pos_pub = rospy.Publisher("transPos", PoseArray, queue_size = 1)
 
 
 def init_subcribers():
@@ -103,10 +103,11 @@ def stream_images():
       bboxes = blob_detection_with_dog(color_image)
       end = time.time() - start
       bboxes = np.array(bboxes).reshape(len(bboxes)/4, 4)
+
       cal_coodinates(bboxes)
 
 
-      print('Run time: ', end)
+      # print('Run time: ', end)
 
       # r.sleep()
 
@@ -162,8 +163,8 @@ def cal_coodinates(bboxes):
     point_location = rs.rs2_deproject_pixel_to_point(depth_intrinsics, [(x2+x1)/2, (y2+y1)/2], distance)
     point_location = [meter2inch(p) for p in point_location]
     now = datetime.now()
-    print(now, end=' ')
-    print('loc:',  point_location)
+    # print(now, end=' ')
+    print('CameraPos:',  point_location)
 
     point = Pose()
     point.position.x = point_location[0]
@@ -191,27 +192,57 @@ def cal_coodinates(bboxes):
   cv2.namedWindow('RealSense', cv2.WINDOW_AUTOSIZE)
   cv2.imshow('RealSense', color_image)
   key = cv2.waitKey(1)
-  # if key & 0xFF == ord('q') or key == 27:
-  #   cv2.destroyAllWindows()
+  if key & 0xFF == ord('q') or key == 27:
+    cv2.destroyAlSlWindows()
+    
 	
   points.poses.sort(key=sortZ)
   pos_pub.publish(points)
   convert_coordinates(points)
 
 
-def convert_coordinates(points):
+# calibrated center
+CENTER_X = 2.8
+CENTER_Y = 6.8
+CENTER_Z = 32
 
+x_bar = -1000
+y_bar = -1000
+z_bar = -1000
+
+def convert_coordinates(points):
+  global x_bar
+  global y_bar
+  global z_bar
+  
   for p in points.poses:
     tmp_x = p.position.x
     tmp_y = p.position.y
     tmp_z = p.position.z
-    p.position.x = tmp_z - 32.6
-    p.position.y =  (tmp_x - 2.1)
-    p.position.z = -1 * (tmp_y - 7.1)
+    p.position.x = tmp_z - CENTER_Z
+    p.position.y =  (tmp_x - CENTER_X)
+    p.position.z = -1 * (tmp_y - CENTER_Y)
 
-    print('Tube-based loc:',   p.position.x,  p.position.y, p.position.z)
+    x = p.position.x
+    y = p.position.y
+    z = p.position.z
 
+    if x_bar == -1000 or y_bar == -1000 or z_bar == -1000:
+      x_bar = x
+      y_bar = y
+      z_bar = z
 
+    alpha = 0.1
+    x_bar += alpha * (x - x_bar)
+    y_bar += alpha * (y - y_bar)
+    z_bar += alpha * (z - z_bar)
+
+    print('TransPos:',   p.position.x,  p.position.y, p.position.z)
+    print('Average Pos:',   x_bar,  y_bar, z_bar)
+
+    break
+
+  print('CENTER: ', CENTER_X, CENTER_Y, CENTER_Z)
   converted_pos_pub.publish(points)
 
 
@@ -229,3 +260,6 @@ if __name__ == '__main__':
   init_publishers()
   init_subcribers()
   stream_images()
+
+
+
