@@ -26,10 +26,9 @@ def filter_rg(img):
     b[b<=38] = 1
     b[b>38] = 0
     tmp[tmp < 60] = 0
-    tmp[tmp > 190] = 0
     tmp[tmp != 0] = 200
     tmp = tmp.astype(type(r[0, 0]))
-    return tmp*b
+    return tmp
 
 
 def hough_circles():
